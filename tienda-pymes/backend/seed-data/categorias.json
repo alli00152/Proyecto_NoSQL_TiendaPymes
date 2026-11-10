@@ -1,0 +1,5 @@
+[
+  { "_id": { "$oid": "665b00000000000000000001" }, "nombre": "Camisas", "padreId": null },
+  { "_id": { "$oid": "665b00000000000000000002" }, "nombre": "Pantalones", "padreId": null },
+  { "_id": { "$oid": "665b00000000000000000003" }, "nombre": "Vestidos", "padreId": null }
+]

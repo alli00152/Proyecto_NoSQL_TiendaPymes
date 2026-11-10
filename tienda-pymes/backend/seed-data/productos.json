@@ -1,0 +1,22 @@
+[
+  {
+    "_id": { "$oid": "665f00000000000000000001" },
+    "nombre": "Camisa lino manga larga",
+    "descripcion": "Camisa casual unisex",
+    "precio": 18500,
+    "categoriaId": { "$oid": "665b00000000000000000001" },
+    "variantes": [{ "sku": "CAM-001-M-AZ", "talla": "M", "color": "Azul", "stock": 12 }],
+    "imagenes": [],
+    "activo": true
+  },
+  {
+    "_id": { "$oid": "665f00000000000000000002" },
+    "nombre": "Pantalón jean slim",
+    "descripcion": "Jean de mezclilla elástica",
+    "precio": 24900,
+    "categoriaId": { "$oid": "665b00000000000000000002" },
+    "variantes": [{ "sku": "PAN-001-32-NG", "talla": "32", "color": "Negro", "stock": 8 }],
+    "imagenes": [],
+    "activo": true
+  }
+]
