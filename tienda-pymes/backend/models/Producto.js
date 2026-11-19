@@ -26,7 +26,7 @@ const productoSchema = new mongoose.Schema(
     imagenes: { type: [String], default: [] },
     activo: { type: Boolean, default: true },
   },
-  { timestamps: { createdAt: 'creadoEn', updatedAt: false } }
+  { timestamps: { createdAt: 'creadoEn', updatedAt: false } , versionKey: false }
 );
 
 module.exports = mongoose.model('Producto', productoSchema, 'productos');
