@@ -254,6 +254,7 @@ db.envios.createIndex({ pedidoId: 1 });
 db.resenas.createIndex({ productoId: 1, fecha: -1 });
 db.carritos.createIndex({ expiraEn: 1 }, { expireAfterSeconds: 0, name: "ttl_carritos_expiraEn" });
 db.auditoria.createIndex({ usuarioId: 1, fecha: -1 });
+db.categorias.createIndex({ padreId: 1, nombre: 1 }, { unique: true, name: "ux_categorias_padre_nombre" });
 // Opcional: índice de texto para un buscador de productos (búsqueda por palabras).
 // Descomentar si se implementa la búsqueda en la API.
 // db.productos.createIndex({ nombre: "text", descripcion: "text" }, { name: "tx_productos_busqueda", default_language: "spanish" });

@@ -1,5 +1,5 @@
 // services/productoService.js
-// Capa de servicio: solo Mongoose. No conoce req ni res.
+
 const Producto = require('../models/Producto');
 
 class ProductoService {
