@@ -1,0 +1,23 @@
+[
+  {
+    "_id": {
+      "$oid": "675000000000000000000401"
+    },
+    "codigo": "BIENVENIDA10",
+    "tipo": "PORCENTAJE",
+    "valor": 10,
+    "comercioId": {
+      "$oid": "675000000000000000000d01"
+    },
+    "usosMaximos": 100,
+    "usosActuales": 1,
+    "montoMinimo": 15000,
+    "vigenteDesde": {
+      "$date": "2026-10-01T00:00:00Z"
+    },
+    "vigenteHasta": {
+      "$date": "2026-12-31T23:59:59Z"
+    },
+    "activo": true
+  }
+]

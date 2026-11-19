@@ -1,10 +1,4 @@
-// ROL 2 (Base de datos)
-// Carga los archivos de seed-data/<coleccion>.json en la base indicada por MONGODB_URI.
-//  - Un archivo por colección; el nombre del archivo = nombre de la colección.
-//  - Formato: arreglo JSON (se admite Extended JSON de mongoexport: {"$oid": "..."}).
-//  - Para reemplazar los ejemplos con sus datos reales:
-//      mongoexport --db tienda_pymes --collection productos --jsonArray --out seed-data/productos.json
-//  Uso: npm run seed     (BORRA y recarga cada colección que tenga archivo)
+
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
@@ -12,25 +6,43 @@ const mongoose = require('mongoose');
 
 const { EJSON } = mongoose.mongo.BSON;
 const DIR = path.join(__dirname, 'seed-data');
+const URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/tienda_pymes';
+const DB_NAME = process.env.DB_NAME || 'tienda_pymes';
+const leer = (archivo) => EJSON.parse(fs.readFileSync(path.join(DIR, archivo), 'utf8'));
 
 async function main() {
-  await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/tienda_pymes');
-  console.log('Conectado a', mongoose.connection.name);
-
-  const archivos = fs.readdirSync(DIR).filter((f) => f.endsWith('.json'));
-  for (const archivo of archivos) {
-    const coleccion = path.basename(archivo, '.json');
-    const docs = EJSON.parse(fs.readFileSync(path.join(DIR, archivo), 'utf8'));
-    const col = mongoose.connection.collection(coleccion);
-    await col.deleteMany({});
-    if (docs.length) await col.insertMany(docs);
-    console.log(`${coleccion}: ${docs.length} documentos`);
+  if (URI.startsWith('mongodb+srv') && !process.argv.includes('--confirmar')) {
+    console.error('La URI apunta a Atlas. Esto BORRA y recrea las colecciones de "' + DB_NAME + '".');
+    console.error('Si es lo que quieres, ejecuta:  npm run seed -- --confirmar');
+    process.exit(1);
   }
+
+  await mongoose.connect(URI, { dbName: DB_NAME });
+  const db = mongoose.connection.db;
+  console.log('Conectado a la base:', db.databaseName);
+
+  const esquema = leer('_esquema.json');                    // validadores e índices por colección
+  const existentes = (await db.listCollections().toArray()).map((c) => c.name);
+
+  for (const [nombre, def] of Object.entries(esquema)) {
+    if (existentes.includes(nombre)) await db.dropCollection(nombre);
+
+    await db.createCollection(nombre, def.validator ? { validator: def.validator } : {});
+
+    const docs = leer(nombre + '.json');
+    if (docs.length) await db.collection(nombre).insertMany(docs);
+
+    for (const { keys, options } of def.indexes) await db.collection(nombre).createIndex(keys, options);
+
+    console.log(nombre.padEnd(16), String(docs.length).padStart(2), 'doc(s)', '|', def.indexes.length, 'índice(s)');
+  }
+
+  console.log('\nColecciones creadas:', Object.keys(esquema).length);
   await mongoose.disconnect();
-  console.log('Seed terminado');
 }
 
-main().catch((err) => {
-  console.error(err);
+main().catch(async (err) => {
+  console.error('Error en el seed:', err.message);
+  await mongoose.disconnect().catch(() => {});
   process.exit(1);
 });

@@ -1,0 +1,55 @@
+[
+  {
+    "_id": {
+      "$oid": "675000000000000000000101"
+    },
+    "clienteId": {
+      "$oid": "675000000000000000000c01"
+    },
+    "comercioId": {
+      "$oid": "675000000000000000000d01"
+    },
+    "lineas": [
+      {
+        "productoId": {
+          "$oid": "675000000000000000000f01"
+        },
+        "sku": "CAM-LIN-M-BLA",
+        "nombre": "Camisa de lino manga larga",
+        "talla": "M",
+        "color": "Blanco",
+        "cantidad": 2,
+        "precioUnit": 18500
+      }
+    ],
+    "subtotal": 37000,
+    "impuestos": 4810,
+    "descuento": 0,
+    "total": 41810,
+    "cuponId": null,
+    "estado": "PAGADO",
+    "historial": [
+      {
+        "estado": "CREADO",
+        "fecha": {
+          "$date": "2026-10-02T11:00:00Z"
+        }
+      },
+      {
+        "estado": "PAGADO",
+        "fecha": {
+          "$date": "2026-10-02T11:05:00Z"
+        }
+      }
+    ],
+    "direccionEntrega": {
+      "provincia": "San José",
+      "canton": "Escazú",
+      "distrito": "San Rafael",
+      "detalle": "200 m norte de la iglesia"
+    },
+    "creadoEn": {
+      "$date": "2026-10-02T11:00:00Z"
+    }
+  }
+]

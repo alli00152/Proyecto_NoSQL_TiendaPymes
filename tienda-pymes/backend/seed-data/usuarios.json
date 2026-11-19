@@ -1,0 +1,44 @@
+[
+  {
+    "_id": {
+      "$oid": "675000000000000000000b01"
+    },
+    "correo": "admin@tiendapymes.cr",
+    "passwordHash": "$2b$10$adminHashEjemplo000000000000000000000000000000000000",
+    "rolId": {
+      "$oid": "675000000000000000000a01"
+    },
+    "estado": "ACTIVO",
+    "creadoEn": {
+      "$date": "2026-09-01T08:00:00Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "675000000000000000000b02"
+    },
+    "correo": "ventas@modanova.cr",
+    "passwordHash": "$2b$10$vendHashEjemplo0000000000000000000000000000000000000",
+    "rolId": {
+      "$oid": "675000000000000000000a02"
+    },
+    "estado": "ACTIVO",
+    "creadoEn": {
+      "$date": "2026-09-05T10:30:00Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "675000000000000000000b03"
+    },
+    "correo": "maria.rojas@correo.com",
+    "passwordHash": "$2b$10$cliHashEjemplo00000000000000000000000000000000000000",
+    "rolId": {
+      "$oid": "675000000000000000000a03"
+    },
+    "estado": "ACTIVO",
+    "creadoEn": {
+      "$date": "2026-09-20T14:15:00Z"
+    }
+  }
+]

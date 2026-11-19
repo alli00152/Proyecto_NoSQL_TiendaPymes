@@ -1,0 +1,25 @@
+[
+  {
+    "clienteId": {
+      "$oid": "675000000000000000000c01"
+    },
+    "estado": "ACTIVO",
+    "lineas": [
+      {
+        "productoId": {
+          "$oid": "675000000000000000000f02"
+        },
+        "sku": "PAN-JEA-30-NEG",
+        "nombre": "Pantalón jean slim",
+        "cantidad": 1,
+        "precioUnit": 24900
+      }
+    ],
+    "creadoEn": {
+      "$date": "2026-11-02T18:00:00Z"
+    },
+    "expiraEn": {
+      "$date": "2026-12-31T00:00:00Z"
+    }
+  }
+]

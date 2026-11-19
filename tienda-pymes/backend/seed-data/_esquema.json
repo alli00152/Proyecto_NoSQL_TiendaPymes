@@ -1,0 +1,631 @@
+{
+  "roles": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+          "nombre",
+          "permisos"
+        ],
+        "properties": {
+          "nombre": {
+            "bsonType": "string"
+          },
+          "descripcion": {
+            "bsonType": "string"
+          },
+          "permisos": {
+            "bsonType": "array",
+            "items": {
+              "bsonType": "string"
+            }
+          }
+        }
+      }
+    },
+    "indexes": [
+      {
+        "keys": {
+          "nombre": 1
+        },
+        "options": {
+          "unique": true
+        }
+      }
+    ]
+  },
+  "usuarios": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+          "correo",
+          "passwordHash",
+          "rolId",
+          "estado",
+          "creadoEn"
+        ],
+        "properties": {
+          "correo": {
+            "bsonType": "string",
+            "pattern": "^.+@.+\\..+$"
+          },
+          "passwordHash": {
+            "bsonType": "string"
+          },
+          "rolId": {
+            "bsonType": "objectId"
+          },
+          "estado": {
+            "enum": [
+              "ACTIVO",
+              "INACTIVO",
+              "BLOQUEADO"
+            ]
+          },
+          "creadoEn": {
+            "bsonType": "date"
+          }
+        }
+      }
+    },
+    "indexes": [
+      {
+        "keys": {
+          "correo": 1
+        },
+        "options": {
+          "unique": true,
+          "name": "ux_usuarios_correo"
+        }
+      }
+    ]
+  },
+  "clientes": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+          "usuarioId",
+          "nombre",
+          "apellidos"
+        ],
+        "properties": {
+          "usuarioId": {
+            "bsonType": "objectId"
+          },
+          "nombre": {
+            "bsonType": "string"
+          },
+          "apellidos": {
+            "bsonType": "string"
+          },
+          "telefonos": {
+            "bsonType": "array"
+          },
+          "direcciones": {
+            "bsonType": "array"
+          }
+        }
+      }
+    },
+    "indexes": []
+  },
+  "comercios": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+          "razonSocial",
+          "cedulaJuridica",
+          "estado"
+        ],
+        "properties": {
+          "razonSocial": {
+            "bsonType": "string"
+          },
+          "cedulaJuridica": {
+            "bsonType": "string"
+          },
+          "estado": {
+            "enum": [
+              "ACTIVO",
+              "SUSPENDIDO",
+              "PENDIENTE"
+            ]
+          }
+        }
+      }
+    },
+    "indexes": [
+      {
+        "keys": {
+          "cedulaJuridica": 1
+        },
+        "options": {
+          "unique": true
+        }
+      }
+    ]
+  },
+  "categorias": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+          "nombre"
+        ],
+        "properties": {
+          "nombre": {
+            "bsonType": "string"
+          },
+          "padreId": {
+            "bsonType": [
+              "objectId",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "indexes": [
+      {
+        "keys": {
+          "padreId": 1,
+          "nombre": 1
+        },
+        "options": {
+          "unique": true,
+          "name": "ux_categorias_padre_nombre"
+        }
+      }
+    ]
+  },
+  "productos": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+          "comercioId",
+          "nombre",
+          "precio",
+          "activo"
+        ],
+        "properties": {
+          "comercioId": {
+            "bsonType": "objectId"
+          },
+          "categoriaId": {
+            "bsonType": "objectId"
+          },
+          "nombre": {
+            "bsonType": "string"
+          },
+          "precio": {
+            "bsonType": "object",
+            "required": [
+              "monto",
+              "moneda"
+            ],
+            "properties": {
+              "monto": {
+                "bsonType": [
+                  "int",
+                  "double",
+                  "long"
+                ],
+                "minimum": 0
+              },
+              "moneda": {
+                "enum": [
+                  "CRC",
+                  "USD"
+                ]
+              }
+            }
+          },
+          "variantes": {
+            "bsonType": "array"
+          },
+          "activo": {
+            "bsonType": "bool"
+          }
+        }
+      }
+    },
+    "indexes": [
+      {
+        "keys": {
+          "comercioId": 1,
+          "categoriaId": 1
+        },
+        "options": {
+          "name": "ix_productos_comercio_categoria"
+        }
+      },
+      {
+        "keys": {
+          "variantes.sku": 1
+        },
+        "options": {}
+      }
+    ]
+  },
+  "inventario": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+          "productoId",
+          "sku",
+          "bodega",
+          "existencias",
+          "minimo"
+        ],
+        "properties": {
+          "productoId": {
+            "bsonType": "objectId"
+          },
+          "sku": {
+            "bsonType": "string"
+          },
+          "bodega": {
+            "bsonType": "string"
+          },
+          "existencias": {
+            "bsonType": [
+              "int",
+              "long"
+            ],
+            "minimum": 0
+          },
+          "minimo": {
+            "bsonType": [
+              "int",
+              "long"
+            ],
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "indexes": [
+      {
+        "keys": {
+          "sku": 1,
+          "bodega": 1
+        },
+        "options": {
+          "unique": true
+        }
+      }
+    ]
+  },
+  "carritos": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+          "clienteId",
+          "lineas",
+          "estado",
+          "expiraEn"
+        ],
+        "properties": {
+          "clienteId": {
+            "bsonType": "objectId"
+          },
+          "lineas": {
+            "bsonType": "array"
+          },
+          "estado": {
+            "enum": [
+              "ACTIVO",
+              "ABANDONADO",
+              "CONVERTIDO"
+            ]
+          },
+          "expiraEn": {
+            "bsonType": "date"
+          }
+        }
+      }
+    },
+    "indexes": [
+      {
+        "keys": {
+          "expiraEn": 1
+        },
+        "options": {
+          "expireAfterSeconds": 0,
+          "name": "ttl_carritos_expiraEn"
+        }
+      }
+    ]
+  },
+  "pedidos": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+          "clienteId",
+          "comercioId",
+          "lineas",
+          "total",
+          "estado"
+        ],
+        "properties": {
+          "clienteId": {
+            "bsonType": "objectId"
+          },
+          "comercioId": {
+            "bsonType": "objectId"
+          },
+          "lineas": {
+            "bsonType": "array",
+            "minItems": 1
+          },
+          "total": {
+            "bsonType": [
+              "int",
+              "double",
+              "long"
+            ],
+            "minimum": 0
+          },
+          "estado": {
+            "enum": [
+              "CREADO",
+              "PAGADO",
+              "ENVIADO",
+              "ENTREGADO",
+              "CANCELADO"
+            ]
+          }
+        }
+      }
+    },
+    "indexes": [
+      {
+        "keys": {
+          "clienteId": 1,
+          "estado": 1
+        },
+        "options": {
+          "name": "ix_pedidos_cliente_estado"
+        }
+      }
+    ]
+  },
+  "pagos": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+          "pedidoId",
+          "metodo",
+          "monto",
+          "resultado"
+        ],
+        "properties": {
+          "pedidoId": {
+            "bsonType": "objectId"
+          },
+          "metodo": {
+            "enum": [
+              "TARJETA",
+              "SINPE",
+              "TRANSFERENCIA",
+              "EFECTIVO"
+            ]
+          },
+          "monto": {
+            "bsonType": [
+              "int",
+              "double",
+              "long"
+            ],
+            "minimum": 0
+          },
+          "resultado": {
+            "enum": [
+              "APROBADO",
+              "RECHAZADO",
+              "PENDIENTE"
+            ]
+          }
+        }
+      }
+    },
+    "indexes": [
+      {
+        "keys": {
+          "pedidoId": 1
+        },
+        "options": {}
+      }
+    ]
+  },
+  "envios": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+          "pedidoId",
+          "transportista",
+          "estado"
+        ],
+        "properties": {
+          "pedidoId": {
+            "bsonType": "objectId"
+          },
+          "transportista": {
+            "bsonType": "string"
+          },
+          "estado": {
+            "enum": [
+              "PREPARANDO",
+              "EN_RUTA",
+              "ENTREGADO",
+              "DEVUELTO"
+            ]
+          }
+        }
+      }
+    },
+    "indexes": [
+      {
+        "keys": {
+          "pedidoId": 1
+        },
+        "options": {}
+      }
+    ]
+  },
+  "resenas": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+          "clienteId",
+          "productoId",
+          "calificacion"
+        ],
+        "properties": {
+          "clienteId": {
+            "bsonType": "objectId"
+          },
+          "productoId": {
+            "bsonType": "objectId"
+          },
+          "calificacion": {
+            "bsonType": "int",
+            "minimum": 1,
+            "maximum": 5
+          }
+        }
+      }
+    },
+    "indexes": [
+      {
+        "keys": {
+          "productoId": 1,
+          "fecha": -1
+        },
+        "options": {}
+      }
+    ]
+  },
+  "cupones": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+          "codigo",
+          "tipo",
+          "valor",
+          "vigenteHasta"
+        ],
+        "properties": {
+          "codigo": {
+            "bsonType": "string"
+          },
+          "tipo": {
+            "enum": [
+              "PORCENTAJE",
+              "MONTO_FIJO"
+            ]
+          },
+          "valor": {
+            "bsonType": [
+              "int",
+              "double"
+            ],
+            "minimum": 0
+          },
+          "vigenteHasta": {
+            "bsonType": "date"
+          }
+        }
+      }
+    },
+    "indexes": [
+      {
+        "keys": {
+          "codigo": 1
+        },
+        "options": {
+          "unique": true
+        }
+      }
+    ]
+  },
+  "notificaciones": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+          "usuarioId",
+          "canal",
+          "estado"
+        ],
+        "properties": {
+          "usuarioId": {
+            "bsonType": "objectId"
+          },
+          "canal": {
+            "enum": [
+              "CORREO",
+              "SMS",
+              "PUSH"
+            ]
+          },
+          "estado": {
+            "enum": [
+              "PENDIENTE",
+              "ENVIADA",
+              "FALLIDA"
+            ]
+          }
+        }
+      }
+    },
+    "indexes": []
+  },
+  "auditoria": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+          "usuarioId",
+          "operacion",
+          "entidad",
+          "fecha"
+        ],
+        "properties": {
+          "usuarioId": {
+            "bsonType": "objectId"
+          },
+          "operacion": {
+            "bsonType": "string"
+          },
+          "entidad": {
+            "bsonType": "string"
+          },
+          "fecha": {
+            "bsonType": "date"
+          }
+        }
+      }
+    },
+    "indexes": [
+      {
+        "keys": {
+          "usuarioId": 1,
+          "fecha": -1
+        },
+        "options": {}
+      }
+    ]
+  }
+}

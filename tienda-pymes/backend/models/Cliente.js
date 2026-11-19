@@ -1,11 +1,26 @@
-// ROL 2 (Base de datos) - AJUSTAR al esquema real de "clientes" (script de mongosh del Avance 1)
+// Colección "clientes": datos personales del comprador, teléfonos y direcciones.
 const mongoose = require('mongoose');
+const opciones = require('./_opciones');
 
-const schema = new mongoose.Schema({
-    usuarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
-    nombre: { type: String, required: true },
-    telefonos: [String],
-    direcciones: [{ provincia: String, canton: String, distrito: String, detalle: String }],
-  }, { timestamps: true });
+const telefonoSchema = new mongoose.Schema(
+  { tipo: String, numero: String },
+  { _id: false }
+);
 
-module.exports = mongoose.model('Cliente', schema, 'clientes');
+const direccionSchema = new mongoose.Schema(
+  { alias: String, provincia: String, canton: String, distrito: String, detalle: String, predeterminada: Boolean },
+  { _id: false }
+);
+
+const clienteSchema = new mongoose.Schema(
+  {
+    usuarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
+    nombre: { type: String, required: true, trim: true },
+    apellidos: { type: String, required: true, trim: true },
+    telefonos: [telefonoSchema],
+    direcciones: [direccionSchema],
+  },
+  opciones
+);
+
+module.exports = mongoose.model('Cliente', clienteSchema, 'clientes');

@@ -1,0 +1,17 @@
+[
+  {
+    "usuarioId": {
+      "$oid": "675000000000000000000b03"
+    },
+    "canal": "CORREO",
+    "asunto": "Tu pedido fue pagado",
+    "mensaje": "Recibimos tu pago. Pronto prepararemos el envío.",
+    "pedidoId": {
+      "$oid": "675000000000000000000101"
+    },
+    "estado": "ENVIADA",
+    "enviadaEn": {
+      "$date": "2026-10-02T11:06:00Z"
+    }
+  }
+]

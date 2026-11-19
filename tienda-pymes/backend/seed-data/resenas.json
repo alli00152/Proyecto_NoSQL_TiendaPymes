@@ -1,0 +1,18 @@
+[
+  {
+    "clienteId": {
+      "$oid": "675000000000000000000c01"
+    },
+    "productoId": {
+      "$oid": "675000000000000000000f01"
+    },
+    "comercioId": {
+      "$oid": "675000000000000000000d01"
+    },
+    "calificacion": 5,
+    "comentario": "Muy fresca y de buena calidad.",
+    "fecha": {
+      "$date": "2026-10-12T19:00:00Z"
+    }
+  }
+]

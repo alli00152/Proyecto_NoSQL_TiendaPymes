@@ -1,12 +1,17 @@
-// ROL 2 (Base de datos) - AJUSTAR al esquema real de "envios" (script de mongosh del Avance 1)
+// Colección "envios": despachos.  Índice: pedidoId
 const mongoose = require('mongoose');
+const opciones = require('./_opciones');
 
-const schema = new mongoose.Schema({
-    pedidoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Pedido' },
-    transportista: String,
+const envioSchema = new mongoose.Schema(
+  {
+    pedidoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Pedido', required: true },
+    transportista: { type: String, required: true, trim: true },
     guia: String,
-    estados: [{ estado: String, fecha: { type: Date, default: Date.now } }],
+    estado: { type: String, enum: ['PREPARANDO', 'EN_RUTA', 'ENTREGADO', 'DEVUELTO'], required: true },
+    estadosRuta: [new mongoose.Schema({ estado: String, fecha: Date }, { _id: false })],
     fechaEstimada: Date,
-  }, { timestamps: true });
+  },
+  opciones
+);
 
-module.exports = mongoose.model('Envio', schema, 'envios');
+module.exports = mongoose.model('Envio', envioSchema, 'envios');

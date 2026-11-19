@@ -1,0 +1,18 @@
+[
+  {
+    "_id": {
+      "$oid": "675000000000000000000201"
+    },
+    "pedidoId": {
+      "$oid": "675000000000000000000101"
+    },
+    "metodo": "TARJETA",
+    "monto": 41810,
+    "moneda": "CRC",
+    "referenciaPasarela": "PSR-20261002-0001",
+    "resultado": "APROBADO",
+    "fecha": {
+      "$date": "2026-10-02T11:05:00Z"
+    }
+  }
+]

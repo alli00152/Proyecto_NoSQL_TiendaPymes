@@ -1,5 +1,30 @@
 [
-  { "_id": { "$oid": "665b00000000000000000001" }, "nombre": "Camisas", "padreId": null },
-  { "_id": { "$oid": "665b00000000000000000002" }, "nombre": "Pantalones", "padreId": null },
-  { "_id": { "$oid": "665b00000000000000000003" }, "nombre": "Vestidos", "padreId": null }
+  {
+    "_id": {
+      "$oid": "675000000000000000000e01"
+    },
+    "nombre": "Ropa",
+    "padreId": null,
+    "ruta": "ropa"
+  },
+  {
+    "_id": {
+      "$oid": "675000000000000000000e02"
+    },
+    "nombre": "Camisas",
+    "padreId": {
+      "$oid": "675000000000000000000e01"
+    },
+    "ruta": "ropa/camisas"
+  },
+  {
+    "_id": {
+      "$oid": "675000000000000000000e03"
+    },
+    "nombre": "Pantalones",
+    "padreId": {
+      "$oid": "675000000000000000000e01"
+    },
+    "ruta": "ropa/pantalones"
+  }
 ]

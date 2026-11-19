@@ -1,0 +1,28 @@
+[
+  {
+    "_id": {
+      "$oid": "675000000000000000000c01"
+    },
+    "usuarioId": {
+      "$oid": "675000000000000000000b03"
+    },
+    "nombre": "María",
+    "apellidos": "Rojas Vargas",
+    "telefonos": [
+      {
+        "tipo": "móvil",
+        "numero": "+506 8888-1234"
+      }
+    ],
+    "direcciones": [
+      {
+        "alias": "Casa",
+        "provincia": "San José",
+        "canton": "Escazú",
+        "distrito": "San Rafael",
+        "detalle": "200 m norte de la iglesia",
+        "predeterminada": true
+      }
+    ]
+  }
+]

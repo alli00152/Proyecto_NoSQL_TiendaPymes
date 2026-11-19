@@ -1,13 +1,24 @@
-// ROL 2 (Base de datos) - AJUSTAR al esquema real de "inventario" (script de mongosh del Avance 1)
+// Colección "inventario": existencias por producto, SKU y bodega.  Índice único: (sku, bodega)
 const mongoose = require('mongoose');
+const opciones = require('./_opciones');
 
-const schema = new mongoose.Schema({
-    productoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Producto' },
-    sku: { type: String, required: true },
-    bodega: { type: String, required: true },
-    stock: { type: Number, min: 0, default: 0 },
-    minimo: { type: Number, min: 0, default: 0 },
-    movimientos: [{ tipo: String, cantidad: Number, fecha: { type: Date, default: Date.now } }],
-  }, { timestamps: true });
+const entero = { validator: Number.isInteger, message: '{PATH} debe ser un entero' };
 
-module.exports = mongoose.model('Inventario', schema, 'inventario');
+const movimientoSchema = new mongoose.Schema(
+  { tipo: String, cantidad: Number, fecha: Date },
+  { _id: false }
+);
+
+const inventarioSchema = new mongoose.Schema(
+  {
+    productoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Producto', required: true },
+    sku: { type: String, required: true, trim: true },
+    bodega: { type: String, required: true, trim: true },
+    existencias: { type: Number, required: true, min: 0, validate: entero },
+    minimo: { type: Number, required: true, min: 0, validate: entero },
+    movimientos: [movimientoSchema],
+  },
+  opciones
+);
+
+module.exports = mongoose.model('Inventario', inventarioSchema, 'inventario');

@@ -1,11 +1,18 @@
-// ROL 2 (Base de datos) - AJUSTAR al esquema real de "auditoria" (script de mongosh del Avance 1)
+// Colección "auditoria": bitácora de acciones sensibles.  Índice: (usuarioId, fecha desc)
 const mongoose = require('mongoose');
+const opciones = require('./_opciones');
 
-const schema = new mongoose.Schema({
-    usuarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
-    operacion: String,
-    entidad: String,
-    fecha: { type: Date, default: Date.now },
-  }, { timestamps: true });
+const auditoriaSchema = new mongoose.Schema(
+  {
+    usuarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
+    operacion: { type: String, required: true },
+    entidad: { type: String, required: true },
+    entidadId: mongoose.Schema.Types.ObjectId,
+    detalle: mongoose.Schema.Types.Mixed,          // ej. { antes: 17900, despues: 18500 }
+    ip: String,
+    fecha: { type: Date, required: true, default: Date.now },
+  },
+  opciones
+);
 
-module.exports = mongoose.model('Auditoria', schema, 'auditoria');
+module.exports = mongoose.model('Auditoria', auditoriaSchema, 'auditoria');

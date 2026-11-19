@@ -1,0 +1,49 @@
+[
+  {
+    "_id": {
+      "$oid": "675000000000000000000a01"
+    },
+    "nombre": "administrador",
+    "descripcion": "Gestiona la plataforma",
+    "permisos": [
+      "*"
+    ]
+  },
+  {
+    "_id": {
+      "$oid": "675000000000000000000a02"
+    },
+    "nombre": "vendedor",
+    "descripcion": "Dueño o personal de un comercio",
+    "permisos": [
+      "productos:*",
+      "inventario:*",
+      "pedidos:leer",
+      "pedidos:actualizar"
+    ]
+  },
+  {
+    "_id": {
+      "$oid": "675000000000000000000a03"
+    },
+    "nombre": "cliente",
+    "descripcion": "Comprador",
+    "permisos": [
+      "carrito:*",
+      "pedidos:crear",
+      "pedidos:leer_propios",
+      "resenas:crear"
+    ]
+  },
+  {
+    "_id": {
+      "$oid": "675000000000000000000a04"
+    },
+    "nombre": "soporte",
+    "descripcion": "Atención al cliente",
+    "permisos": [
+      "pedidos:leer",
+      "usuarios:leer"
+    ]
+  }
+]

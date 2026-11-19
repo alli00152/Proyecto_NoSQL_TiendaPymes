@@ -1,0 +1,30 @@
+[
+  {
+    "_id": {
+      "$oid": "675000000000000000000301"
+    },
+    "pedidoId": {
+      "$oid": "675000000000000000000101"
+    },
+    "transportista": "Correos de Costa Rica",
+    "guia": "CR123456789",
+    "estado": "EN_RUTA",
+    "estadosRuta": [
+      {
+        "estado": "PREPARANDO",
+        "fecha": {
+          "$date": "2026-10-03T09:00:00Z"
+        }
+      },
+      {
+        "estado": "EN_RUTA",
+        "fecha": {
+          "$date": "2026-10-04T08:00:00Z"
+        }
+      }
+    ],
+    "fechaEstimada": {
+      "$date": "2026-10-07T00:00:00Z"
+    }
+  }
+]

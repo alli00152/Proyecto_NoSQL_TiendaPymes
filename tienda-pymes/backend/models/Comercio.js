@@ -1,11 +1,16 @@
-// ROL 2 (Base de datos) - AJUSTAR al esquema real de "comercios" (script de mongosh del Avance 1)
+// Colección "comercios": negocios vendedores.  Índice único: cedulaJuridica
 const mongoose = require('mongoose');
+const opciones = require('./_opciones');
 
-const schema = new mongoose.Schema({
-    razonSocial: { type: String, required: true },
-    cedulaJuridica: { type: String, required: true, unique: true },
-    contacto: { nombre: String, correo: String, telefono: String },
-    estado: { type: String, default: 'activo' },
-  }, { timestamps: true });
+const comercioSchema = new mongoose.Schema(
+  {
+    razonSocial: { type: String, required: true, trim: true },
+    cedulaJuridica: { type: String, required: true, trim: true },
+    contacto: { correo: String, telefono: String },
+    propietarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
+    estado: { type: String, enum: ['ACTIVO', 'SUSPENDIDO', 'PENDIENTE'], required: true },
+  },
+  { ...opciones, timestamps: { createdAt: 'creadoEn', updatedAt: false } }
+);
 
-module.exports = mongoose.model('Comercio', schema, 'comercios');
+module.exports = mongoose.model('Comercio', comercioSchema, 'comercios');

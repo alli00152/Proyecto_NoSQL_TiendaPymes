@@ -1,11 +1,18 @@
-// ROL 2 (Base de datos) - AJUSTAR al esquema real de "notificaciones" (script de mongosh del Avance 1)
+// Colección "notificaciones": mensajes enviados y su estado de entrega.
 const mongoose = require('mongoose');
+const opciones = require('./_opciones');
 
-const schema = new mongoose.Schema({
-    usuarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
-    canal: { type: String, enum: ['correo', 'sms', 'push'] },
+const notificacionSchema = new mongoose.Schema(
+  {
+    usuarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
+    canal: { type: String, enum: ['CORREO', 'SMS', 'PUSH'], required: true },
+    asunto: String,
     mensaje: String,
-    estado: String,
-  }, { timestamps: true });
+    pedidoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Pedido' },
+    estado: { type: String, enum: ['PENDIENTE', 'ENVIADA', 'FALLIDA'], required: true },
+    enviadaEn: Date,
+  },
+  opciones
+);
 
-module.exports = mongoose.model('Notificacion', schema, 'notificaciones');
+module.exports = mongoose.model('Notificacion', notificacionSchema, 'notificaciones');

@@ -1,0 +1,20 @@
+[
+  {
+    "usuarioId": {
+      "$oid": "675000000000000000000b02"
+    },
+    "operacion": "ACTUALIZAR_PRECIO",
+    "entidad": "productos",
+    "entidadId": {
+      "$oid": "675000000000000000000f01"
+    },
+    "detalle": {
+      "antes": 17900,
+      "despues": 18500
+    },
+    "ip": "190.113.10.25",
+    "fecha": {
+      "$date": "2026-10-05T15:20:00Z"
+    }
+  }
+]

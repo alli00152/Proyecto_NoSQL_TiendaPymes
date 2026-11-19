@@ -1,0 +1,67 @@
+[
+  {
+    "productoId": {
+      "$oid": "675000000000000000000f01"
+    },
+    "sku": "CAM-LIN-M-BLA",
+    "bodega": "Principal",
+    "existencias": 15,
+    "minimo": 3,
+    "movimientos": [
+      {
+        "tipo": "ENTRADA",
+        "cantidad": 20,
+        "fecha": {
+          "$date": "2026-10-01T10:00:00Z"
+        }
+      },
+      {
+        "tipo": "SALIDA",
+        "cantidad": 5,
+        "fecha": {
+          "$date": "2026-10-10T16:00:00Z"
+        }
+      }
+    ]
+  },
+  {
+    "productoId": {
+      "$oid": "675000000000000000000f01"
+    },
+    "sku": "CAM-LIN-L-BLA",
+    "bodega": "Principal",
+    "existencias": 2,
+    "minimo": 3,
+    "movimientos": []
+  },
+  {
+    "productoId": {
+      "$oid": "675000000000000000000f01"
+    },
+    "sku": "CAM-LIN-M-AZU",
+    "bodega": "Principal",
+    "existencias": 10,
+    "minimo": 3,
+    "movimientos": []
+  },
+  {
+    "productoId": {
+      "$oid": "675000000000000000000f02"
+    },
+    "sku": "PAN-JEA-30-NEG",
+    "bodega": "Principal",
+    "existencias": 8,
+    "minimo": 2,
+    "movimientos": []
+  },
+  {
+    "productoId": {
+      "$oid": "675000000000000000000f02"
+    },
+    "sku": "PAN-JEA-32-NEG",
+    "bodega": "Principal",
+    "existencias": 6,
+    "minimo": 2,
+    "movimientos": []
+  }
+]

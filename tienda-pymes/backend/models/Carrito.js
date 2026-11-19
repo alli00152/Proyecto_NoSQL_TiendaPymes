@@ -1,10 +1,26 @@
-// ROL 2 (Base de datos) - AJUSTAR al esquema real de "carritos" (script de mongosh del Avance 1)
+// Colección "carritos": carritos activos o abandonados.  Índice TTL: expiraEn (ttl_carritos_expiraEn)
 const mongoose = require('mongoose');
+const opciones = require('./_opciones');
 
-const schema = new mongoose.Schema({
-    clienteId: { type: mongoose.Schema.Types.ObjectId, ref: 'Cliente' },
-    lineas: [{ productoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Producto' }, sku: String, cantidad: { type: Number, min: 1 } }],
-    expiraEn: { type: Date },
-  }, { timestamps: true });
+const lineaSchema = new mongoose.Schema(
+  {
+    productoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Producto' },
+    sku: String,
+    nombre: String,
+    cantidad: { type: Number, min: 1 },
+    precioUnit: { type: Number, min: 0 },
+  },
+  { _id: false }
+);
 
-module.exports = mongoose.model('Carrito', schema, 'carritos');
+const carritoSchema = new mongoose.Schema(
+  {
+    clienteId: { type: mongoose.Schema.Types.ObjectId, ref: 'Cliente', required: true },
+    lineas: [lineaSchema],
+    estado: { type: String, enum: ['ACTIVO', 'ABANDONADO', 'CONVERTIDO'], default: 'ACTIVO', required: true },
+    expiraEn: { type: Date, required: true },
+  },
+  { ...opciones, timestamps: { createdAt: 'creadoEn', updatedAt: false } }
+);
+
+module.exports = mongoose.model('Carrito', carritoSchema, 'carritos');

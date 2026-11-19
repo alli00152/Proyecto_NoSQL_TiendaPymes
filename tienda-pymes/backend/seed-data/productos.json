@@ -1,22 +1,87 @@
 [
   {
-    "_id": { "$oid": "665f00000000000000000001" },
-    "nombre": "Camisa lino manga larga",
-    "descripcion": "Camisa casual unisex",
-    "precio": 18500,
-    "categoriaId": { "$oid": "665b00000000000000000001" },
-    "variantes": [{ "sku": "CAM-001-M-AZ", "talla": "M", "color": "Azul", "stock": 12 }],
-    "imagenes": [],
-    "activo": true
+    "_id": {
+      "$oid": "675000000000000000000f01"
+    },
+    "comercioId": {
+      "$oid": "675000000000000000000d01"
+    },
+    "categoriaId": {
+      "$oid": "675000000000000000000e02"
+    },
+    "nombre": "Camisa de lino manga larga",
+    "descripcion": "Camisa casual de lino, corte regular.",
+    "precio": {
+      "monto": 18500,
+      "moneda": "CRC"
+    },
+    "atributos": {
+      "material": "Lino 100%",
+      "genero": "Unisex"
+    },
+    "variantes": [
+      {
+        "sku": "CAM-LIN-M-BLA",
+        "talla": "M",
+        "color": "Blanco"
+      },
+      {
+        "sku": "CAM-LIN-L-BLA",
+        "talla": "L",
+        "color": "Blanco"
+      },
+      {
+        "sku": "CAM-LIN-M-AZU",
+        "talla": "M",
+        "color": "Azul"
+      }
+    ],
+    "imagenes": [
+      "camisa_lino_blanca.jpg"
+    ],
+    "activo": true,
+    "creadoEn": {
+      "$date": "2026-10-01T09:00:00Z"
+    }
   },
   {
-    "_id": { "$oid": "665f00000000000000000002" },
+    "_id": {
+      "$oid": "675000000000000000000f02"
+    },
+    "comercioId": {
+      "$oid": "675000000000000000000d01"
+    },
+    "categoriaId": {
+      "$oid": "675000000000000000000e03"
+    },
     "nombre": "Pantalón jean slim",
-    "descripcion": "Jean de mezclilla elástica",
-    "precio": 24900,
-    "categoriaId": { "$oid": "665b00000000000000000002" },
-    "variantes": [{ "sku": "PAN-001-32-NG", "talla": "32", "color": "Negro", "stock": 8 }],
-    "imagenes": [],
-    "activo": true
+    "descripcion": "Jean de mezclilla elástica.",
+    "precio": {
+      "monto": 24900,
+      "moneda": "CRC"
+    },
+    "atributos": {
+      "material": "Mezclilla elástica",
+      "genero": "Mujer"
+    },
+    "variantes": [
+      {
+        "sku": "PAN-JEA-30-NEG",
+        "talla": "30",
+        "color": "Negro"
+      },
+      {
+        "sku": "PAN-JEA-32-NEG",
+        "talla": "32",
+        "color": "Negro"
+      }
+    ],
+    "imagenes": [
+      "jean_slim_negro.jpg"
+    ],
+    "activo": true,
+    "creadoEn": {
+      "$date": "2026-10-01T09:30:00Z"
+    }
   }
 ]
