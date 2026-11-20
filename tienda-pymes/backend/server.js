@@ -34,7 +34,7 @@ app.use((err, req, res, next) => {
 mongoose
   .connect(MONGODB_URI)
   .then(() => {
-    console.log('MongoDB conectado:', mongoose.connection.name);
+    console.log('MongoDB conectado:', mongoose.connection.name, '@', mongoose.connection.host);
     app.listen(PORT, () => console.log(`API en http://localhost:${PORT}`));
   })
   .catch((err) => {
