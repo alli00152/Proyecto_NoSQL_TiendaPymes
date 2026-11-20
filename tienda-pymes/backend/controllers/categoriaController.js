@@ -60,9 +60,9 @@ class CategoriaController {
             }
             const categoria = await categoriaService.deleteCategoria(req.params.id);
             if (!categoria){
-                return res.status(404).json({ mensaje: 'Categoría no encontrada' });
+                return res.status(404).json({ error: 'Categoría no encontrada' });
             }
-            res.json({ message: 'Categoría eliminada correctamente' });
+            res.json({ mensaje: 'Categoría eliminada correctamente' });
         }catch (error) {
             manejarError(res, error);
         }
