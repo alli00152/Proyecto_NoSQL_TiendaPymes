@@ -1,8 +1,19 @@
 # API Tienda Pymes · Contrato de productos
 
-API REST de productos sobre Node.js + Express + Mongoose. Este documento es lo que necesitás para
-consumirla desde el front: cómo levantarla, los cinco endpoints, las reglas de los datos y los
-errores que puede devolver.
+API REST de productos y reportes sobre Node.js + Express + Mongoose. Este documento es lo que
+necesitás para consumirla desde el front: cómo levantarla, los endpoints, las reglas de los datos y
+los errores que puede devolver.
+
+---
+
+## Cambios del 21/11
+
+- **El SKU lo escribe el usuario y es obligatorio.** La API ya no lo genera: cada variante tiene que
+  venir con su `sku`, tanto al crear como al editar.
+- **Para editar una variante se manda su SKU**, y con eso se le pueden cambiar la talla, el color y
+  el stock. Un SKU que no es del producto se agrega como variante nueva; si ese SKU ya está en uso,
+  la API responde 409.
+- **Hay reportes nuevos** con agregaciones, bajo `/api/reportes` (sección 5).
 
 ---
 
@@ -49,7 +60,7 @@ motivo en pantalla y la API no queda levantada.
 
 ---
 
-## 2. Los cinco endpoints
+## 2. Los cinco endpoints de productos
 
 Todas las rutas van bajo `/api/productos`. Las respuestas son JSON.
 
@@ -124,7 +135,8 @@ Otros códigos: **404** si el id no existe, **400** si el id no tiene forma de O
 
 ### `POST /api/productos`
 
-Crea un producto. No hace falta mandar `comercioId`: la API le asigna el primer comercio activo.
+Crea un producto. Cada variante va con su `sku`, que es obligatorio. No hace falta mandar
+`comercioId`: la API le asigna el primer comercio activo.
 
 **Request**
 
@@ -135,7 +147,7 @@ Crea un producto. No hace falta mandar `comercioId`: la API le asigna el primer 
   "precio": 12345,
   "activo": true,
   "categoriaId": "675000000000000000000e02",
-  "variantes": [{ "talla": "M", "color": "Verde", "stock": 7 }]
+  "variantes": [{ "sku": "CAM-PRU-M-VER", "talla": "M", "color": "Verde", "stock": 7 }]
 }
 ```
 
@@ -156,19 +168,22 @@ Crea un producto. No hace falta mandar `comercioId`: la API le asigna el primer 
 }
 ```
 
-Fijate en dos cosas: mandaste `precio` como número y volvió como `{ monto, moneda }`, y no mandaste
-`sku` pero la API lo generó.
+Fijate en que mandaste `precio` como número y volvió como `{ monto, moneda }`.
+
+Otros códigos: **400** si falta un `sku` o si viene repetido en el mismo request, **409** si alguno
+de los `sku` ya está en uso.
 
 ### `PUT /api/productos/:id`
 
 Actualiza un producto. Mandá **solo los campos que cambian**; lo que no mandás se queda como está.
+Cada variante se identifica por su `sku`.
 
-**Request** — cambiar el precio y subir el stock de una talla:
+**Request** — cambiar el precio y subir el stock de una variante:
 
 ```json
 {
   "precio": 21000,
-  "variantes": [{ "talla": "30", "color": "Negro", "stock": 99 }]
+  "variantes": [{ "sku": "PAN-PRU-30-NEG", "stock": 99 }]
 }
 ```
 
@@ -191,10 +206,11 @@ Actualiza un producto. Mandá **solo los campos que cambian**; lo que no mandás
 }
 ```
 
-Mandaste una sola variante y las otras dos siguen ahí con su stock intacto: solo cambió la que
-coincidió. Más detalle en la sección 3.
+Mandaste una sola variante y las otras dos siguen ahí con su stock intacto: solo cambió la del `sku`
+que mandaste. Más detalle en la sección 3.
 
-Otros códigos: **404** si el id no existe, **400** si el id es inválido o si los datos no pasan.
+Otros códigos: **404** si el id no existe, **400** si el id es inválido o si a una variante le falta
+el `sku`, **409** si mandás un `sku` que ya está en uso en otro producto.
 
 ### `DELETE /api/productos/:id`
 
@@ -236,10 +252,14 @@ Otros códigos: **404** si el id no existe, **400** si el id es inválido.
 
 ### SKU
 
-- **Lo genera la API**, no lo mandés al crear. Se arma con el nombre del producto, la talla y el
-  color: "Camisa de lino manga larga" + talla `M` + color `Blanco` da `CAM-LIN-M-BLA`.
-- Viene en cada variante de todas las respuestas. Guardalo si querés poder editar esa variante
-  después (ver abajo).
+- **Lo escribe el usuario y es obligatorio.** Cada variante tiene que venir con su `sku`, tanto en
+  el POST como en el PUT. Si falta, la API responde 400.
+- **Es único en todo el inventario.** No puede repetirse dentro del mismo request (400) ni estar ya
+  en uso por otra variante, de este producto o de otro (409).
+- Se le quitan los espacios de los extremos, pero no se cambia nada más: se guarda tal como lo
+  escribiste.
+- Es la forma de identificar una variante: viene en cada variante de todas las respuestas, y es lo
+  que mandás para editarla.
 
 ### Variantes en el PUT
 
@@ -247,18 +267,27 @@ El PUT **nunca borra variantes**. Para cada variante que mandás:
 
 | Lo que mandás | Qué pasa |
 |---|---|
-| `{ talla, color, stock }` y esa talla + color ya existe | le actualiza el stock |
-| `{ talla, color, stock }` con una combinación nueva | agrega una variante nueva, con su sku |
-| `{ sku, stock }` con un sku del producto | le actualiza el stock a esa variante |
+| un `sku` que ya es del producto | le actualiza la talla, el color y el stock, **solo los que vengan** |
+| un `sku` que no es del producto y está libre | agrega la variante nueva, con su fila de inventario |
+| un `sku` que ya está en uso en otra parte | **409**, y el producto no se toca |
+| una variante sin `sku` | **400**, y el producto no se toca |
 | nada (no mandás la clave `variantes`) | no toca ninguna variante |
 | `"variantes": []` | no toca ninguna variante |
 
-El emparejamiento es por `sku` si lo mandás, y si no por `talla` + `color`.
+Las variantes que no mandás se quedan exactamente como estaban.
 
-**La comparación de talla y color distingue mayúsculas y espacios.** `"Blanco"`, `"blanco"` y
-`"Blanco "` son tres valores distintos, y mandar el que no coincide agrega una variante repetida en
-vez de actualizar la que ya estaba. Por eso conviene que talla y color sean listas desplegables con
-valores fijos, y no campos de texto libre.
+Para cambiarle solo el stock a una variante, alcanza con su `sku`:
+
+```json
+{ "variantes": [{ "sku": "CAM-LIN-L-BLA", "stock": 20 }] }
+```
+
+Y para cambiarle la talla o el color, mandás el mismo `sku` con el campo nuevo. El `sku` no cambia:
+sigue siendo el de esa variante, y su fila de inventario es la misma.
+
+```json
+{ "variantes": [{ "sku": "CAM-LIN-L-BLA", "talla": "XL", "stock": 20 }] }
+```
 
 **Para agotar una talla, dejala en 0.** No hay forma de borrar una variante desde el PUT:
 
@@ -266,16 +295,12 @@ valores fijos, y no campos de texto libre.
 { "variantes": [{ "sku": "CAM-LIN-L-BLA", "stock": 0 }] }
 ```
 
-Si mandás un `sku` tiene que ser de ese producto y con su misma talla y color; si no, la API
-responde 400 en vez de hacer algo raro. Los dos casos están en la tabla de errores.
-
 ### Campos que pone la API sola
 
 | Campo | Valor |
 |---|---|
 | `comercioId` | el primer comercio con estado `ACTIVO`, si no lo mandás |
 | `precio.moneda` | `CRC` |
-| `sku` de cada variante | generado a partir del nombre, la talla y el color |
 | `creadoEn` | la fecha de creación |
 
 `categoriaId` es opcional. Si no lo mandás, el producto queda sin categoría; si lo mandás, tiene
@@ -312,24 +337,100 @@ directamente al usuario.
 | `La categoría indicada no existe` | `categoriaId` no corresponde a ninguna categoría |
 | `El comercio indicado no existe` | `comercioId` no corresponde a ningún comercio |
 | `No hay comercios activos para asignar el producto` | no mandaste `comercioId` y no hay ninguno `ACTIVO` en la base |
-| `La variante indicada no existe en este producto` | mandaste un `sku` que no es de ese producto |
-| `Para otra talla o color, agregá una variante nueva (la anterior se puede dejar en 0)` | mandaste un `sku` del producto pero con otra talla u otro color |
+| `Cada variante necesita su SKU` | una variante vino sin `sku`, o con el `sku` vacío |
+| `El SKU <sku> está repetido` | el mismo `sku` vino dos veces en el mismo POST |
+| `El límite debe ser un número entero mayor o igual a 0` | el `?limite=` de `/api/reportes/stock-bajo` no es un entero ≥ 0 |
 | `Valor inválido en <campo>` | un campo tiene un tipo que no corresponde |
 | `La base rechazó los datos: revise los campos obligatorios` | el validador de la base rechazó el documento |
 | varios mensajes separados por punto | falló más de una validación del modelo a la vez |
 
 ### Mensajes de 404 y 409
 
-| Código | Mensaje |
-|---|---|
-| 404 | `Producto no encontrado` |
-| 404 | `Ruta no encontrada` (la URL no existe) |
-| 409 | `Ya existe un registro con esos datos` |
-| 500 | `Error interno del servidor` |
+| Código | Mensaje | Cuándo |
+|---|---|---|
+| 404 | `Producto no encontrado` | el id tiene forma válida pero no existe |
+| 404 | `Ruta no encontrada` | la URL no existe |
+| 409 | `El SKU <sku> ya existe` | ese `sku` ya está en uso en el inventario |
+| 409 | `Ya existe un registro con esos datos` | choca con otro dato único de la base |
+| 500 | `Error interno del servidor` | error del servidor o de la base |
 
 ---
 
-## 5. Notas para el front
+## 5. Reportes
+
+Seis `GET` de solo lectura bajo `/api/reportes`. Todos devuelven 200 y JSON. Los ejemplos de abajo
+son con los datos de ejemplo de `database/tienda_pymes.js`.
+
+### `GET /api/reportes/resumen`
+
+Cuántos productos, categorías y pedidos hay.
+
+```json
+{ "productos": 2, "categorias": 4, "pedidos": 1 }
+```
+
+### `GET /api/reportes/productos-por-categoria`
+
+Cuántos productos tiene cada categoría. Los productos sin categoría salen agrupados como
+`"Sin categoría"`.
+
+```json
+[
+  { "cantidad": 1, "categoria": "Camisas" },
+  { "cantidad": 1, "categoria": "Pantalones" }
+]
+```
+
+### `GET /api/reportes/stock-por-producto`
+
+El stock total de cada producto, sumando todas sus variantes. Ordenado de mayor a menor.
+
+```json
+[
+  { "stockTotal": 27, "producto": "Camisa de lino manga larga" },
+  { "stockTotal": 14, "producto": "Pantalón jean slim" }
+]
+```
+
+### `GET /api/reportes/precio-por-categoria`
+
+Precio promedio, más bajo y más alto de cada categoría. El promedio viene redondeado a 2 decimales.
+
+```json
+[
+  { "minimo": 18500, "maximo": 18500, "categoria": "Camisas", "promedio": 18500 },
+  { "minimo": 24900, "maximo": 24900, "categoria": "Pantalones", "promedio": 24900 }
+]
+```
+
+### `GET /api/reportes/stock-bajo?limite=5`
+
+Las variantes con menos existencias que el límite. Si no mandás `limite`, usa 5. Ordenado de menos a
+más existencias, así que las más críticas salen primero.
+
+```json
+[
+  { "sku": "CAM-LIN-L-BLA", "existencias": 2, "producto": "Camisa de lino manga larga" }
+]
+```
+
+Si `limite` no es un entero mayor o igual a 0, responde **400**
+`{ "error": "El límite debe ser un número entero mayor o igual a 0" }`.
+
+### `GET /api/reportes/pedidos-por-estado`
+
+Cuántos pedidos hay en cada estado. Los estados posibles son `CREADO`, `PAGADO`, `ENVIADO`,
+`ENTREGADO` y `CANCELADO`.
+
+```json
+[
+  { "cantidad": 1, "estado": "PAGADO" }
+]
+```
+
+---
+
+## 6. Notas para el front
 
 1. **Apagá el mock.** En `frontend/app.js`, poné `USE_MOCK = false`. `API_URL` ya apunta a
    `http://localhost:3000/api`, que es el puerto por defecto de la API.
@@ -347,20 +448,31 @@ directamente al usuario.
 
    Al **enviar** no cambia nada: seguí mandando `precio` como número.
 
-3. **Talla y color, en listas desplegables.** La API empareja las variantes comparando talla y color
-   exactamente, distinguiendo mayúsculas y espacios. Con campos de texto libre es fácil escribir
-   `"blanco"` y terminar con una variante repetida en vez de actualizar la que ya existía.
-
-4. **Mandá el `sku` para editar una variante que ya existe.** Viene en cada variante del GET.
-   Es la forma segura de decirle a la API "esta variante, no otra":
+3. **El formulario necesita un campo SKU por variante.** Hoy el HTML tiene `talla`, `color` y
+   `stock`, pero no `sku`, y ahora el `sku` es obligatorio: sin él, el POST y el PUT responden 400.
+   Hay que agregar un input de texto para el SKU junto a los otros tres, y mandarlo dentro de la
+   variante:
 
    ```js
-   { variantes: [{ sku: 'CAM-LIN-M-BLA', stock: 20 }] }
+   datos.variantes.push({
+     sku: $('sku').value.trim(),
+     talla: $('talla').value.trim(),
+     color: $('color').value.trim(),
+     stock: Number($('stock').value) || 0,
+   });
    ```
 
-   Sin `sku`, el emparejamiento depende de que talla y color coincidan letra por letra. Y ojo: el
-   `sku` sirve para cambiar el stock, no para cambiar la talla o el color de esa variante; para otra
-   talla o color, agregá una variante nueva.
+   Al editar, cargalo desde la variante que estás mostrando: `$('sku').value = v.sku || ''`.
+
+4. **El `sku` es el que identifica la variante.** Mandándolo podés cambiarle la talla, el color y el
+   stock, y la API sabe a cuál te referís:
+
+   ```js
+   { variantes: [{ sku: 'CAM-LIN-M-BLA', talla: 'L', stock: 20 }] }
+   ```
+
+   Un `sku` que no es del producto se agrega como variante nueva. Si el SKU que escribió el usuario
+   ya está en uso, la respuesta es 409 con el mensaje listo para mostrar.
 
 5. **Para agotar una talla, stock en 0.** El PUT no borra variantes.
 
