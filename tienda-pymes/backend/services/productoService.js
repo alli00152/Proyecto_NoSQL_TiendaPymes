@@ -17,16 +17,6 @@ function errorDeNegocio(status, mensaje) {
     return err;
 }
 
-// Tres letras sin acentos y en mayuscula, como los sku de los datos de ejemplo
-function tresLetras(texto) {
-    return String(texto)
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '') // quita las tildes
-        .toUpperCase()
-        .replace(/[^A-Z0-9]/g, '')
-        .slice(0, 3);
-}
-
 class ProductoService {
     // ----------------------------- lectura -----------------------------
 
@@ -46,21 +36,27 @@ class ProductoService {
     async createProducto(data) {
         const { variantes = [], precio, comercioId, categoriaId, ...resto } = data;
 
+        // Primero se revisa todo, para no dejar un producto a medias si algo falla
+        const porGuardar = [];
+        const vistos = new Set();
+        for (const v of variantes) {
+            const sku = this.#leerSku(v);
+            if (vistos.has(sku)) throw errorDeNegocio(400, `El SKU ${sku} está repetido`);
+            vistos.add(sku);
+            porGuardar.push({
+                variante: { sku, talla: v.talla, color: v.color },
+                stock: this.#validarStock(v.stock),
+            });
+        }
+        for (const sku of vistos) {
+            await this.#revisarSkuLibre(sku);
+        }
+
         const doc = { ...resto };
         doc.precio = this.#normalizarPrecio(precio);
         doc.comercioId = await this.#resolverComercio(comercioId);
         // La base exige que categoriaId sea un objectId: si no viene, no se guarda la clave
         if (categoriaId) doc.categoriaId = await this.#resolverCategoria(categoriaId);
-
-        const usados = new Set();
-        const porGuardar = [];
-        for (const v of variantes) {
-            const stock = this.#validarStock(v.stock);
-            const sku = v.sku
-                ? String(v.sku).trim()
-                : await this.#generarSku(data.nombre, v.talla, v.color, usados);
-            porGuardar.push({ variante: { sku, talla: v.talla, color: v.color }, stock });
-        }
         doc.variantes = porGuardar.map((p) => p.variante);
 
         const producto = new Producto(doc);
@@ -93,21 +89,29 @@ class ProductoService {
 
         const porGuardar = [];
         if (Array.isArray(variantes)) {
-            const nombre = cambios.nombre || actual.nombre;
-            const usados = new Set(actual.variantes.map((v) => v.sku));
-            const lista = actual.variantes.map((v) => ({ sku: v.sku, talla: v.talla, color: v.color }));
+            const lista = actual.variantes.map((v) => ({
+                sku: v.sku,
+                talla: v.talla,
+                color: v.color,
+            }));
 
+            // Cada variante se identifica por su sku. Los sku nuevos se revisan en esta
+            // pasada, que termina antes del update, para no dejar el producto a medias
             for (const v of variantes) {
-                const stock = this.#validarStock(v.stock);
-                const existente = this.#emparejarVariante(lista, v);
+                const sku = this.#leerSku(v);
+                const existente = lista.find((x) => x.sku === sku);
                 if (existente) {
-                    porGuardar.push({ variante: existente, stock });
+                    // De una variante que ya es del producto se cambia solo lo que venga
+                    if (v.talla !== undefined) existente.talla = v.talla;
+                    if (v.color !== undefined) existente.color = v.color;
+                    if (v.stock !== undefined) {
+                        porGuardar.push({ variante: existente, stock: this.#validarStock(v.stock) });
+                    }
                 } else {
-                    // Acá nunca viene sku: si viniera, #emparejarVariante ya habría respondido
-                    const sku = await this.#generarSku(nombre, v.talla, v.color, usados);
+                    await this.#revisarSkuLibre(sku);
                     const nueva = { sku, talla: v.talla, color: v.color };
                     lista.push(nueva);
-                    porGuardar.push({ variante: nueva, stock });
+                    porGuardar.push({ variante: nueva, stock: this.#validarStock(v.stock) });
                 }
             }
             // Las que el request no manda se quedan como estan: aca nunca se borra una variante
@@ -162,6 +166,20 @@ class ProductoService {
         return { ...resto, variantes };
     }
 
+    // El sku lo escribe el usuario y es obligatorio
+    #leerSku(v) {
+        const sku = v.sku ? String(v.sku).trim() : '';
+        if (!sku) throw errorDeNegocio(400, 'Cada variante necesita su SKU');
+        return sku;
+    }
+
+    // Un sku nuevo no puede estar ya en inventario, ni de este producto ni de otro
+    async #revisarSkuLibre(sku) {
+        if (await Inventario.exists({ sku, bodega: BODEGA })) {
+            throw errorDeNegocio(409, `El SKU ${sku} ya existe`);
+        }
+    }
+
     // El front manda el precio como numero; la base lo exige como { monto, moneda }
     #normalizarPrecio(precio) {
         const esObjeto = typeof precio === 'object' && precio !== null;
@@ -204,57 +222,6 @@ class ProductoService {
         const categoria = await Categoria.findById(categoriaId);
         if (!categoria) throw errorDeNegocio(400, 'La categoría indicada no existe');
         return categoria._id;
-    }
-
-    // Busca a cuál variante del producto se refiere la que llega en el request.
-    // Con sku: tiene que ser una variante de este producto y con su misma talla y color.
-    // Sin sku (el caso del formulario): se empareja por talla + color.
-    #emparejarVariante(lista, v) {
-        if (v.sku) {
-            const sku = String(v.sku).trim();
-            const existente = lista.find((x) => x.sku === sku);
-            if (!existente) {
-                throw errorDeNegocio(400, 'La variante indicada no existe en este producto');
-            }
-            const otraTalla = v.talla !== undefined && (v.talla || '') !== (existente.talla || '');
-            const otroColor = v.color !== undefined && (v.color || '') !== (existente.color || '');
-            if (otraTalla || otroColor) {
-                throw errorDeNegocio(
-                    400,
-                    'Para otra talla o color, agregá una variante nueva (la anterior se puede dejar en 0)'
-                );
-            }
-            return existente;
-        }
-        return (
-            lista.find(
-                (x) => (x.talla || '') === (v.talla || '') && (x.color || '') === (v.color || '')
-            ) || null
-        );
-    }
-
-    // Formato de los datos de ejemplo: CAM-LIN-M-BLA
-    // (tres letras de las dos primeras palabras largas del nombre, talla y color)
-    async #generarSku(nombre, talla, color, usados) {
-        const palabras = String(nombre || '')
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '') // quita las tildes
-            .split(/\s+/)
-            .filter((p) => p.length >= 3);
-        const partes = palabras.slice(0, 2).map(tresLetras);
-        if (talla) partes.push(tresLetras(talla));
-        if (color) partes.push(tresLetras(color));
-
-        const base = partes.filter(Boolean).join('-') || 'SKU';
-        // El indice (sku, bodega) de inventario es unico: si ya esta, se le agrega un sufijo
-        let sku = base;
-        let n = 1;
-        while (usados.has(sku) || (await Inventario.exists({ sku, bodega: BODEGA }))) {
-            n += 1;
-            sku = `${base}-${n}`;
-        }
-        usados.add(sku);
-        return sku;
     }
 
     // Deja las existencias de una variante en inventario; crea la fila si no existia

@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 
 const productoRoutes = require('./routes/productoRoutes');
 const categoriaRoutes = require('./routes/categoriaRoutes');
+const reporteRoutes = require('./routes/reporteRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,6 +21,7 @@ app.use(bodyParser.json());
 app.get('/', (req, res) => res.json({ mensaje: 'API tienda_pymes funcionando' }));
 app.use('/api/productos', productoRoutes);
 app.use('/api/categorias', categoriaRoutes);
+app.use('/api/reportes', reporteRoutes);
 
 // 404 y manejo de errores (siempre responden { error })
 app.use((req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));
