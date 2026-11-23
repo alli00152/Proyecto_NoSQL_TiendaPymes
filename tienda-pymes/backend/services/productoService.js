@@ -10,54 +10,254 @@ const Categoria = require('../models/Categoria');
 const BODEGA = 'Principal';
 const MINIMO = 0;
 
-// Error de regla de negocio: manejarError usa su status para responder
+// ---------------------------------------------------------------------
+// Funciones de apoyo. La clase de abajo solo tiene los 5 metodos del CRUD.
+// ---------------------------------------------------------------------
+
+// Arma un error de regla de negocio: manejarError usa su status para responder
 function errorDeNegocio(status, mensaje) {
     const err = new Error(mensaje);
     err.status = status;
     return err;
 }
 
+// Devuelve el sku de una variante sin espacios. El usuario lo escribe y es obligatorio
+function leerSku(variante) {
+    let sku = '';
+    if (variante.sku) {
+        sku = String(variante.sku).trim();
+    }
+    if (sku === '') {
+        throw errorDeNegocio(400, 'Cada variante necesita su SKU');
+    }
+    return sku;
+}
+
+// Revisa que un sku nuevo no este ya en inventario, ni de este producto ni de otro
+async function revisarSkuLibre(sku) {
+    const existe = await Inventario.exists({ sku: sku, bodega: BODEGA });
+    if (existe) {
+        throw errorDeNegocio(409, `El SKU ${sku} ya existe`);
+    }
+}
+
+// Dice si un sku ya aparecio en la lista de sku vistos
+function yaEsta(vistos, sku) {
+    for (const visto of vistos) {
+        if (visto === sku) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Busca una variante por su sku dentro de una lista. Devuelve null si no esta
+function buscarPorSku(lista, sku) {
+    for (const variante of lista) {
+        if (variante.sku === sku) {
+            return variante;
+        }
+    }
+    return null;
+}
+
+// Pasa el precio al formato de la base: el front lo manda como numero y la base
+// lo exige como { monto, moneda }
+function normalizarPrecio(precio) {
+    let monto = precio;
+    let moneda = 'CRC';
+    if (typeof precio === 'object' && precio !== null) {
+        monto = precio.monto;
+        if (precio.moneda) {
+            moneda = precio.moneda;
+        }
+    }
+    if (typeof monto !== 'number' || !Number.isFinite(monto) || monto < 0) {
+        throw errorDeNegocio(400, 'El precio debe ser un número mayor o igual a 0');
+    }
+    return { monto: monto, moneda: moneda };
+}
+
+// Revisa que el stock sea un entero mayor o igual a 0. Si no viene, vale 0
+function validarStock(stock) {
+    let valor = stock;
+    if (stock === undefined || stock === null) {
+        valor = 0;
+    }
+    if (!Number.isInteger(valor) || valor < 0) {
+        throw errorDeNegocio(400, 'El stock debe ser un número entero mayor o igual a 0');
+    }
+    return valor;
+}
+
+// Devuelve el id del primer comercio activo: el front no elige comercio
+async function comercioActivo() {
+    const comercio = await Comercio.findOne({ estado: 'ACTIVO' });
+    if (!comercio) {
+        throw errorDeNegocio(400, 'No hay comercios activos para asignar el producto');
+    }
+    return comercio._id;
+}
+
+// Revisa que la categoria exista y devuelve su id
+async function resolverCategoria(categoriaId) {
+    if (!mongoose.Types.ObjectId.isValid(categoriaId)) {
+        throw errorDeNegocio(400, 'La categoría indicada no existe');
+    }
+    const categoria = await Categoria.findById(categoriaId);
+    if (!categoria) {
+        throw errorDeNegocio(400, 'La categoría indicada no existe');
+    }
+    return categoria._id;
+}
+
+// Busca en las filas de inventario las existencias de un sku. Si no hay fila, da 0
+function existenciasDe(filas, sku) {
+    for (const fila of filas) {
+        if (fila.sku === sku) {
+            return fila.existencias;
+        }
+    }
+    return 0;
+}
+
+// Deja cada variante como { sku, talla, color, stock } y quita el arreglo del $lookup
+function conStock(producto) {
+    let filas = producto.inventario;
+    if (!filas) {
+        filas = [];
+    }
+    let variantes = producto.variantes;
+    if (!variantes) {
+        variantes = [];
+    }
+    const conExistencias = [];
+    for (const variante of variantes) {
+        conExistencias.push({
+            sku: variante.sku,
+            talla: variante.talla,
+            color: variante.color,
+            stock: existenciasDe(filas, variante.sku),
+        });
+    }
+    producto.variantes = conExistencias;
+    delete producto.inventario;
+    return producto;
+}
+
+// Guarda las existencias de una variante en inventario; crea la fila si no existia
+async function guardarExistencias(productoId, sku, stock) {
+    const res = await Inventario.updateOne(
+        { productoId: productoId, sku: sku, bodega: BODEGA },
+        { $set: { existencias: stock } }
+    );
+    if (res.matchedCount === 0) {
+        await Inventario.create({
+            productoId: productoId,
+            sku: sku,
+            bodega: BODEGA,
+            existencias: stock,
+            minimo: MINIMO,
+        });
+    }
+}
+
+// ---------------------------------------------------------------------
+
 class ProductoService {
-    // ----------------------------- lectura -----------------------------
-
+    // Devuelve todos los productos, del mas nuevo al mas viejo, con el stock de cada variante
     async getProductos() {
-        const productos = await Producto.aggregate(this.#etapas());
-        return productos.map((p) => this.#conStock(p));
+        const productos = await Producto.aggregate([
+            // del mas nuevo al mas viejo
+            { $sort: { creadoEn: -1 } },
+            // trae las filas de inventario de cada producto, para sacarles las existencias
+            {
+                $lookup: {
+                    from: 'inventario',
+                    localField: '_id',
+                    foreignField: 'productoId',
+                    as: 'inventario',
+                },
+            },
+        ]);
+        const lista = [];
+        for (const producto of productos) {
+            lista.push(conStock(producto));
+        }
+        return lista;
     }
 
+    // Devuelve un producto por su id, o null si no existe
     async getProductoById(id) {
-        const filtro = { _id: new mongoose.Types.ObjectId(id) };
-        const productos = await Producto.aggregate(this.#etapas(filtro));
-        return productos.length ? this.#conStock(productos[0]) : null;
+        const productos = await Producto.aggregate([
+            // un solo producto, el del id que se pide
+            { $match: { _id: new mongoose.Types.ObjectId(id) } },
+            // trae sus filas de inventario, para sacarles las existencias
+            {
+                $lookup: {
+                    from: 'inventario',
+                    localField: '_id',
+                    foreignField: 'productoId',
+                    as: 'inventario',
+                },
+            },
+        ]);
+        if (productos.length === 0) {
+            return null;
+        }
+        return conStock(productos[0]);
     }
 
-    // ---------------------------- escritura ----------------------------
-
+    // Crea un producto con sus variantes y una fila de inventario por variante
     async createProducto(data) {
-        const { variantes = [], precio, comercioId, categoriaId, ...resto } = data;
+        let variantes = data.variantes;
+        if (variantes === undefined) {
+            variantes = [];
+        }
 
         // Primero se revisa todo, para no dejar un producto a medias si algo falla
         const porGuardar = [];
-        const vistos = new Set();
-        for (const v of variantes) {
-            const sku = this.#leerSku(v);
-            if (vistos.has(sku)) throw errorDeNegocio(400, `El SKU ${sku} está repetido`);
-            vistos.add(sku);
+        const vistos = [];
+        for (const variante of variantes) {
+            const sku = leerSku(variante);
+            if (yaEsta(vistos, sku)) {
+                throw errorDeNegocio(400, `El SKU ${sku} está repetido`);
+            }
+            vistos.push(sku);
             porGuardar.push({
-                variante: { sku, talla: v.talla, color: v.color },
-                stock: this.#validarStock(v.stock),
+                sku: sku,
+                talla: variante.talla,
+                color: variante.color,
+                stock: validarStock(variante.stock),
             });
         }
         for (const sku of vistos) {
-            await this.#revisarSkuLibre(sku);
+            await revisarSkuLibre(sku);
         }
 
-        const doc = { ...resto };
-        doc.precio = this.#normalizarPrecio(precio);
-        doc.comercioId = await this.#resolverComercio(comercioId);
+        const precio = normalizarPrecio(data.precio);
+        const comercioId = await comercioActivo();
+
+        const soloVariantes = [];
+        for (const item of porGuardar) {
+            soloVariantes.push({ sku: item.sku, talla: item.talla, color: item.color });
+        }
+
+        // El documento se arma campo por campo: lo que no este aca, no se guarda
+        const doc = {
+            comercioId: comercioId,
+            nombre: data.nombre,
+            descripcion: data.descripcion,
+            activo: data.activo,
+            atributos: data.atributos,
+            imagenes: data.imagenes,
+            precio: precio,
+            variantes: soloVariantes,
+        };
         // La base exige que categoriaId sea un objectId: si no viene, no se guarda la clave
-        if (categoriaId) doc.categoriaId = await this.#resolverCategoria(categoriaId);
-        doc.variantes = porGuardar.map((p) => p.variante);
+        if (data.categoriaId) {
+            doc.categoriaId = await resolverCategoria(data.categoriaId);
+        }
 
         const producto = new Producto(doc);
         await producto.save();
@@ -65,8 +265,8 @@ class ProductoService {
         // Sin transacciones (la base local no es replica): si falla el inventario,
         // se deshace el producto recien creado
         try {
-            for (const p of porGuardar) {
-                await this.#guardarExistencias(producto._id, p.variante, p.stock);
+            for (const item of porGuardar) {
+                await guardarExistencias(producto._id, item.sku, item.stock);
             }
         } catch (err) {
             await Inventario.deleteMany({ productoId: producto._id });
@@ -77,41 +277,46 @@ class ProductoService {
         return this.getProductoById(producto._id);
     }
 
+    // Actualiza un producto: cambia solo los campos que vengan y nunca borra variantes
     async updateProducto(id, data) {
         const actual = await Producto.findById(id);
-        if (!actual) return null;
+        if (!actual) {
+            return null;
+        }
 
-        const { variantes, precio, comercioId, categoriaId, ...resto } = data;
-        const cambios = { ...resto };
-        if (precio !== undefined) cambios.precio = this.#normalizarPrecio(precio);
-        if (comercioId !== undefined) cambios.comercioId = await this.#resolverComercio(comercioId);
-        if (categoriaId) cambios.categoriaId = await this.#resolverCategoria(categoriaId);
+        // Solo se cambian los campos que vengan en el request
+        const cambios = {};
+        if (data.nombre !== undefined) cambios.nombre = data.nombre;
+        if (data.descripcion !== undefined) cambios.descripcion = data.descripcion;
+        if (data.activo !== undefined) cambios.activo = data.activo;
+        if (data.atributos !== undefined) cambios.atributos = data.atributos;
+        if (data.imagenes !== undefined) cambios.imagenes = data.imagenes;
+        if (data.precio !== undefined) cambios.precio = normalizarPrecio(data.precio);
+        if (data.categoriaId) cambios.categoriaId = await resolverCategoria(data.categoriaId);
 
         const porGuardar = [];
-        if (Array.isArray(variantes)) {
-            const lista = actual.variantes.map((v) => ({
-                sku: v.sku,
-                talla: v.talla,
-                color: v.color,
-            }));
+        if (Array.isArray(data.variantes)) {
+            const lista = [];
+            for (const variante of actual.variantes) {
+                lista.push({ sku: variante.sku, talla: variante.talla, color: variante.color });
+            }
 
             // Cada variante se identifica por su sku. Los sku nuevos se revisan en esta
             // pasada, que termina antes del update, para no dejar el producto a medias
-            for (const v of variantes) {
-                const sku = this.#leerSku(v);
-                const existente = lista.find((x) => x.sku === sku);
+            for (const variante of data.variantes) {
+                const sku = leerSku(variante);
+                const existente = buscarPorSku(lista, sku);
                 if (existente) {
                     // De una variante que ya es del producto se cambia solo lo que venga
-                    if (v.talla !== undefined) existente.talla = v.talla;
-                    if (v.color !== undefined) existente.color = v.color;
-                    if (v.stock !== undefined) {
-                        porGuardar.push({ variante: existente, stock: this.#validarStock(v.stock) });
+                    if (variante.talla !== undefined) existente.talla = variante.talla;
+                    if (variante.color !== undefined) existente.color = variante.color;
+                    if (variante.stock !== undefined) {
+                        porGuardar.push({ sku: sku, stock: validarStock(variante.stock) });
                     }
                 } else {
-                    await this.#revisarSkuLibre(sku);
-                    const nueva = { sku, talla: v.talla, color: v.color };
-                    lista.push(nueva);
-                    porGuardar.push({ variante: nueva, stock: this.#validarStock(v.stock) });
+                    await revisarSkuLibre(sku);
+                    lista.push({ sku: sku, talla: variante.talla, color: variante.color });
+                    porGuardar.push({ sku: sku, stock: validarStock(variante.stock) });
                 }
             }
             // Las que el request no manda se quedan como estan: aca nunca se borra una variante
@@ -122,115 +327,25 @@ class ProductoService {
             new: true,
             runValidators: true,
         });
-        if (!actualizado) return null;
+        if (!actualizado) {
+            return null;
+        }
 
-        for (const p of porGuardar) {
-            await this.#guardarExistencias(actualizado._id, p.variante, p.stock);
+        for (const item of porGuardar) {
+            await guardarExistencias(actualizado._id, item.sku, item.stock);
         }
 
         return this.getProductoById(id);
     }
 
+    // Borra un producto y las filas de inventario de sus variantes
     async deleteProducto(id) {
         const producto = await Producto.findByIdAndDelete(id);
-        if (!producto) return null;
+        if (!producto) {
+            return null;
+        }
         await Inventario.deleteMany({ productoId: producto._id });
         return producto;
-    }
-
-    // ------------------------- ayudas internas -------------------------
-
-    // $lookup trae las filas de inventario del producto para sacarles las existencias
-    #etapas(filtro) {
-        const etapas = [];
-        if (filtro) etapas.push({ $match: filtro });
-        etapas.push({ $sort: { creadoEn: -1 } });
-        etapas.push({
-            $lookup: {
-                from: 'inventario',
-                localField: '_id',
-                foreignField: 'productoId',
-                as: 'inventario',
-            },
-        });
-        return etapas;
-    }
-
-    // Deja cada variante como { sku, talla, color, stock } y quita el arreglo auxiliar
-    #conStock(producto) {
-        const { inventario = [], ...resto } = producto;
-        const variantes = (producto.variantes || []).map((v) => {
-            const fila = inventario.find((i) => i.sku === v.sku);
-            return { sku: v.sku, talla: v.talla, color: v.color, stock: fila ? fila.existencias : 0 };
-        });
-        return { ...resto, variantes };
-    }
-
-    // El sku lo escribe el usuario y es obligatorio
-    #leerSku(v) {
-        const sku = v.sku ? String(v.sku).trim() : '';
-        if (!sku) throw errorDeNegocio(400, 'Cada variante necesita su SKU');
-        return sku;
-    }
-
-    // Un sku nuevo no puede estar ya en inventario, ni de este producto ni de otro
-    async #revisarSkuLibre(sku) {
-        if (await Inventario.exists({ sku, bodega: BODEGA })) {
-            throw errorDeNegocio(409, `El SKU ${sku} ya existe`);
-        }
-    }
-
-    // El front manda el precio como numero; la base lo exige como { monto, moneda }
-    #normalizarPrecio(precio) {
-        const esObjeto = typeof precio === 'object' && precio !== null;
-        const monto = esObjeto ? precio.monto : precio;
-        if (typeof monto !== 'number' || !Number.isFinite(monto) || monto < 0) {
-            throw errorDeNegocio(400, 'El precio debe ser un número mayor o igual a 0');
-        }
-        return { monto, moneda: (esObjeto && precio.moneda) || 'CRC' };
-    }
-
-    #validarStock(stock) {
-        const valor = stock === undefined || stock === null ? 0 : stock;
-        if (!Number.isInteger(valor) || valor < 0) {
-            throw errorDeNegocio(400, 'El stock debe ser un número entero mayor o igual a 0');
-        }
-        return valor;
-    }
-
-    // El front no tiene selector de comercio, asi que se usa el primero que este activo
-    async #resolverComercio(comercioId) {
-        if (!comercioId) {
-            const comercio = await Comercio.findOne({ estado: 'ACTIVO' });
-            if (!comercio) {
-                throw errorDeNegocio(400, 'No hay comercios activos para asignar el producto');
-            }
-            return comercio._id;
-        }
-        if (!mongoose.Types.ObjectId.isValid(comercioId)) {
-            throw errorDeNegocio(400, 'El comercio indicado no existe');
-        }
-        const comercio = await Comercio.findById(comercioId);
-        if (!comercio) throw errorDeNegocio(400, 'El comercio indicado no existe');
-        return comercio._id;
-    }
-
-    async #resolverCategoria(categoriaId) {
-        if (!mongoose.Types.ObjectId.isValid(categoriaId)) {
-            throw errorDeNegocio(400, 'La categoría indicada no existe');
-        }
-        const categoria = await Categoria.findById(categoriaId);
-        if (!categoria) throw errorDeNegocio(400, 'La categoría indicada no existe');
-        return categoria._id;
-    }
-
-    // Deja las existencias de una variante en inventario; crea la fila si no existia
-    async #guardarExistencias(productoId, variante, stock) {
-        const filtro = { productoId, sku: variante.sku, bodega: BODEGA };
-        const res = await Inventario.updateOne(filtro, { $set: { existencias: stock } });
-        if (res.matchedCount === 0) {
-            await Inventario.create({ ...filtro, existencias: stock, minimo: MINIMO });
-        }
     }
 }
 

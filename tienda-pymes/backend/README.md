@@ -135,8 +135,8 @@ Otros códigos: **404** si el id no existe, **400** si el id no tiene forma de O
 
 ### `POST /api/productos`
 
-Crea un producto. Cada variante va con su `sku`, que es obligatorio. No hace falta mandar
-`comercioId`: la API le asigna el primer comercio activo.
+Crea un producto. Cada variante va con su `sku`, que es obligatorio. No mandés `comercioId`: la API
+siempre le asigna el primer comercio activo, y si lo mandás lo ignora.
 
 **Request**
 
@@ -299,7 +299,7 @@ sigue siendo el de esa variante, y su fila de inventario es la misma.
 
 | Campo | Valor |
 |---|---|
-| `comercioId` | el primer comercio con estado `ACTIVO`, si no lo mandás |
+| `comercioId` | siempre el primer comercio con estado `ACTIVO`; si lo mandás en el request, se ignora |
 | `precio.moneda` | `CRC` |
 | `creadoEn` | la fecha de creación |
 
@@ -335,8 +335,7 @@ directamente al usuario.
 | `El precio debe ser un número mayor o igual a 0` | `precio` vino como texto, vacío, negativo o ausente |
 | `El stock debe ser un número entero mayor o igual a 0` | `stock` vino como texto, negativo o con decimales |
 | `La categoría indicada no existe` | `categoriaId` no corresponde a ninguna categoría |
-| `El comercio indicado no existe` | `comercioId` no corresponde a ningún comercio |
-| `No hay comercios activos para asignar el producto` | no mandaste `comercioId` y no hay ninguno `ACTIVO` en la base |
+| `No hay comercios activos para asignar el producto` | no hay ningún comercio `ACTIVO` en la base |
 | `Cada variante necesita su SKU` | una variante vino sin `sku`, o con el `sku` vacío |
 | `El SKU <sku> está repetido` | el mismo `sku` vino dos veces en el mismo POST |
 | `El límite debe ser un número entero mayor o igual a 0` | el `?limite=` de `/api/reportes/stock-bajo` no es un entero ≥ 0 |
@@ -351,7 +350,9 @@ directamente al usuario.
 | 404 | `Producto no encontrado` | el id tiene forma válida pero no existe |
 | 404 | `Ruta no encontrada` | la URL no existe |
 | 409 | `El SKU <sku> ya existe` | ese `sku` ya está en uso en el inventario |
-| 409 | `Ya existe un registro con esos datos` | choca con otro dato único de la base |
+| 409 | `La categoría tiene productos asociados` | `DELETE /api/categorias/:id` sobre una categoría que algún producto usa |
+| 409 | `La categoría tiene subcategorías` | `DELETE /api/categorias/:id` sobre una categoría que es padre de otra |
+| 409 | `Ya existe un registro con esos datos` | choca con otro dato único de la base, como dos categorías con el mismo nombre bajo el mismo padre |
 | 500 | `Error interno del servidor` | error del servidor o de la base |
 
 ---
