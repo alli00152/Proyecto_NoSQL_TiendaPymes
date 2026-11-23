@@ -12,6 +12,10 @@
   <nav class="navbar navbar-dark bg-dark mb-4">
     <div class="container">
       <span class="navbar-brand mb-0 h1">Tienda Pymes · Administración</span>
+      <div class="d-flex gap-2">
+        <a class="btn btn-sm btn-outline-light" href="categorias.html">Categorías</a>
+        <a class="btn btn-sm btn-outline-light" href="reportes.html">Ver reportes</a>
+      </div>
     </div>
   </nav>
 
@@ -46,15 +50,19 @@
                 </select>
               </div>
               <div class="row">
-                <div class="col-4 mb-3">
+                <div class="col-3 mb-3">
+                  <label for="sku" class="form-label">SKU</label>
+                  <input type="text" class="form-control" id="sku" />
+                </div>
+                <div class="col-3 mb-3">
                   <label for="talla" class="form-label">Talla</label>
                   <input type="text" class="form-control" id="talla" />
                 </div>
-                <div class="col-4 mb-3">
+                <div class="col-3 mb-3">
                   <label for="color" class="form-label">Color</label>
                   <input type="text" class="form-control" id="color" />
                 </div>
-                <div class="col-4 mb-3">
+                <div class="col-3 mb-3">
                   <label for="stock" class="form-label">Stock</label>
                   <input type="number" class="form-control" id="stock" min="0" value="0" />
                 </div>

@@ -1,7 +1,7 @@
 // ROL 4 (JS e integración)
 // USE_MOCK = true  -> trabaja con datos locales (no necesita la API)
 // USE_MOCK = false -> consume la API real (Contrato B)
-const USE_MOCK = true;
+const USE_MOCK = false;
 const API_URL = 'http://localhost:3000/api';
 
 // ---------- Capa de datos ----------
@@ -52,6 +52,14 @@ let categorias = [];
 const escapar = (t) =>
   String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+// Saca el monto del precio: la API lo devuelve como { monto, moneda } y el mock como número
+function montoDe(precio) {
+  if (precio && typeof precio === 'object') {
+    return precio.monto;
+  }
+  return precio;
+}
+
 function mostrarMensaje(texto, tipo = 'success') {
   $('mensaje').innerHTML =
     `<div class="alert alert-${tipo} alert-dismissible fade show" role="alert">${escapar(texto)}` +
@@ -70,13 +78,20 @@ function renderTabla() {
     return;
   }
   tbody.innerHTML = productos.map((p) => {
-    const v = (p.variantes && p.variantes[0]) || {};
-    const variante = v.talla || v.color ? `${escapar(v.talla)} / ${escapar(v.color)} (stock ${escapar(v.stock)})` : '—';
+    const lista = p.variantes || [];
+    let variantes = '—';
+    if (lista.length) {
+      variantes = '';
+      for (const v of lista) {
+        if (variantes !== '') variantes = variantes + '<br>';
+        variantes = variantes + `${escapar(v.sku)}: ${escapar(v.talla)} / ${escapar(v.color)} (stock ${escapar(v.stock)})`;
+      }
+    }
     return `<tr>
       <td>${escapar(p.nombre)}</td>
       <td>${escapar(nombreCategoria(p.categoriaId))}</td>
-      <td>₡${Number(p.precio).toLocaleString('es-CR')}</td>
-      <td>${variante}</td>
+      <td>₡${Number(montoDe(p.precio)).toLocaleString('es-CR')}</td>
+      <td>${variantes}</td>
       <td><span class="badge ${p.activo ? 'bg-success' : 'bg-secondary'}">${p.activo ? 'Activo' : 'Inactivo'}</span></td>
       <td class="text-end">
         <button class="btn btn-sm btn-outline-primary btn-editar" data-id="${escapar(p._id)}">Editar</button>
@@ -105,6 +120,7 @@ function limpiarFormulario() {
   $('productoId').value = '';
   $('stock').value = 0;
   $('activo').checked = true;
+  $('sku').readOnly = false;
   $('tituloForm').textContent = 'Agregar producto';
 }
 
@@ -117,9 +133,13 @@ function leerFormulario() {
     variantes: [],
   };
   if ($('categoriaId').value) datos.categoriaId = $('categoriaId').value;
-  if ($('talla').value.trim() || $('color').value.trim()) {
+  // La variante se arma solo si hay SKU: la API lo exige en cada variante
+  if ($('sku').value.trim()) {
     datos.variantes.push({
-      talla: $('talla').value.trim(), color: $('color').value.trim(), stock: Number($('stock').value) || 0,
+      sku: $('sku').value.trim(),
+      talla: $('talla').value.trim(),
+      color: $('color').value.trim(),
+      stock: Number($('stock').value) || 0,
     });
   }
   return datos;
@@ -130,6 +150,9 @@ form.addEventListener('submit', async (e) => {
   const datos = leerFormulario();
   if (!datos.nombre || Number.isNaN(datos.precio) || datos.precio < 0) {
     return mostrarMensaje('Complete el nombre y un precio válido', 'warning');
+  }
+  if (!$('sku').value.trim() && ($('talla').value.trim() || $('color').value.trim())) {
+    return mostrarMensaje('Escriba el SKU de la variante', 'warning');
   }
   const id = $('productoId').value;
   try {
@@ -157,8 +180,20 @@ $('tablaProductos').addEventListener('click', async (e) => {
     $('productoId').value = p._id;
     $('nombre').value = p.nombre || '';
     $('descripcion').value = p.descripcion || '';
-    $('precio').value = p.precio ?? '';
+    const monto = montoDe(p.precio);
+    if (monto === undefined || monto === null) {
+      $('precio').value = '';
+    } else {
+      $('precio').value = monto;
+    }
     $('categoriaId').value = p.categoriaId || '';
+    $('sku').value = v.sku || '';
+    // El SKU identifica la variante: si se cambia, la API la toma como una variante nueva
+    if (v.sku) {
+      $('sku').readOnly = true;
+    } else {
+      $('sku').readOnly = false;
+    }
     $('talla').value = v.talla || '';
     $('color').value = v.color || '';
     $('stock').value = v.stock ?? 0;
