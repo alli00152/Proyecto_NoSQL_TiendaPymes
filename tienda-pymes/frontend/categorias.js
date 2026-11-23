@@ -116,8 +116,8 @@ function renderTabla() {
       <td>${escapar(c.nombre)}</td>
       <td>${escapar(nombrePadre(c.padreId))}</td>
       <td class="text-end">
-        <button class="btn btn-sm btn-outline-primary btn-editar" data-id="${escapar(c._id)}">Editar</button>
-        <button class="btn btn-sm btn-outline-danger btn-eliminar" data-id="${escapar(c._id)}">Eliminar</button>
+        <button class="btn btn-sm btn-outline-primary btn-editar" data-id="${escapar(c._id)}"><i class="fa-solid fa-pen me-1" aria-hidden="true"></i>Editar</button>
+        <button class="btn btn-sm btn-outline-danger btn-eliminar" data-id="${escapar(c._id)}"><i class="fa-solid fa-trash me-1" aria-hidden="true"></i>Eliminar</button>
       </td></tr>`;
   }
   tbody.innerHTML = filas;

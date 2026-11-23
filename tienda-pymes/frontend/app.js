@@ -93,9 +93,9 @@ function renderTabla() {
       <td>₡${Number(montoDe(p.precio)).toLocaleString('es-CR')}</td>
       <td>${variantes}</td>
       <td><span class="badge ${p.activo ? 'bg-success' : 'bg-secondary'}">${p.activo ? 'Activo' : 'Inactivo'}</span></td>
-      <td class="text-end">
-        <button class="btn btn-sm btn-outline-primary btn-editar" data-id="${escapar(p._id)}">Editar</button>
-        <button class="btn btn-sm btn-outline-danger btn-eliminar" data-id="${escapar(p._id)}">Eliminar</button>
+      <td class="text-end text-nowrap">
+        <button class="btn btn-sm btn-outline-primary me-2 btn-editar" data-id="${escapar(p._id)}"><i class="fa-solid fa-pen me-1" aria-hidden="true"></i>Editar</button>
+        <button class="btn btn-sm btn-outline-danger btn-eliminar" data-id="${escapar(p._id)}"><i class="fa-solid fa-trash me-1" aria-hidden="true"></i>Eliminar</button>
       </td></tr>`;
   }).join('');
 }
