@@ -48,6 +48,11 @@ const $ = (id) => document.getElementById(id);
 const form = $('formProducto');
 let productos = [];
 let categorias = [];
+let productoEliminarId = null;
+
+const modalEliminar = new bootstrap.Modal(
+  $('modalEliminar')
+);
 
 const escapar = (t) =>
   String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -202,17 +207,41 @@ $('tablaProductos').addEventListener('click', async (e) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  if (btn.classList.contains('btn-eliminar')) {
-    // TODO (Rol 3): cambiar confirm() por un modal de Bootstrap
-    if (!confirm('¿Eliminar este producto?')) return;
-    try {
-      await api.eliminar(id);
-      mostrarMensaje('Producto eliminado');
-      await cargar();
-    } catch (err) {
-      mostrarMensaje(err.message, 'danger');
-    }
+  
+     if (btn.classList.contains('btn-eliminar')) {
+    const p = productos.find((x) => x._id === id);
+    if (!p) return;
+
+    productoEliminarId = id;
+
+    $('modalEliminarNombre').textContent = p.nombre;
+
+    modalEliminar.show();
   }
 });
 
+$('btnConfirmarEliminar').addEventListener('click', async () => {
+  if (!productoEliminarId) return;
+
+  const boton = $('btnConfirmarEliminar');
+  boton.disabled = true;
+
+  try {
+    await api.eliminar(productoEliminarId);
+
+    modalEliminar.hide();
+    mostrarMensaje('Producto eliminado correctamente');
+
+    limpiarFormulario();
+    await cargar();
+
+  } catch (err) {
+    modalEliminar.hide();
+    mostrarMensaje(err.message, 'danger');
+
+  } finally {
+    productoEliminarId = null;
+    boton.disabled = false;
+  }
+});
 document.addEventListener('DOMContentLoaded', cargar);
